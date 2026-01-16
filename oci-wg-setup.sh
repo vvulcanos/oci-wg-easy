@@ -77,15 +77,47 @@ check_oci_cli() {
 detect_oci_info() {
     log_info "OCI 정보 자동 감지 중..."
 
-    # 테넌시 OCID
-    TENANCY_OCID=$(oci iam compartment list --query 'data[0]."compartment-id"' --raw-output 2>/dev/null)
+    # Cloud Shell 환경 변수 확인
+    if [[ -n "$OCI_TENANCY" ]]; then
+        TENANCY_OCID="$OCI_TENANCY"
+    elif [[ -n "$OCI_CLI_TENANCY" ]]; then
+        TENANCY_OCID="$OCI_CLI_TENANCY"
+    else
+        # OCI CLI로 가져오기
+        TENANCY_OCID=$(oci iam availability-domain list --query 'data[0]."compartment-id"' --raw-output 2>/dev/null)
+    fi
+
+    if [[ -z "$TENANCY_OCID" ]]; then
+        # OCI config 파일에서 가져오기
+        TENANCY_OCID=$(grep -E "^tenancy" ~/.oci/config 2>/dev/null | head -1 | cut -d'=' -f2 | tr -d ' ')
+    fi
+
+    if [[ -z "$TENANCY_OCID" ]]; then
+        log_error "Tenancy OCID를 가져올 수 없습니다."
+        exit 1
+    fi
+
     log_info "Tenancy: ${TENANCY_OCID:0:50}..."
 
-    # 현재 리전
-    REGION=$(oci iam region-subscription list --query 'data[?"is-home-region"==`true`]."region-name" | [0]' --raw-output 2>/dev/null)
+    # Region 가져오기 - Cloud Shell 환경 변수 우선
+    if [[ -n "$OCI_REGION" ]]; then
+        REGION="$OCI_REGION"
+    elif [[ -n "$OCI_CLI_REGION" ]]; then
+        REGION="$OCI_CLI_REGION"
+    else
+        # OCI config 파일에서 가져오기
+        REGION=$(grep -E "^region" ~/.oci/config 2>/dev/null | head -1 | cut -d'=' -f2 | tr -d ' ')
+    fi
+
     if [[ -z "$REGION" ]]; then
         REGION=$(oci iam region-subscription list --query 'data[0]."region-name"' --raw-output 2>/dev/null)
     fi
+
+    if [[ -z "$REGION" ]]; then
+        log_error "Region을 가져올 수 없습니다."
+        exit 1
+    fi
+
     log_info "Region: $REGION"
 }
 
@@ -125,12 +157,22 @@ select_availability_domain() {
     AD_LIST=$(oci iam availability-domain list \
         --compartment-id "$COMPARTMENT_ID" \
         --query 'data[*].name' \
-        --output json 2>/dev/null)
+        --output json 2>&1)
 
-    AD_COUNT=$(echo "$AD_LIST" | jq length)
+    # 오류 체크
+    if [[ -z "$AD_LIST" || "$AD_LIST" == "null" || "$AD_LIST" == "[]" ]]; then
+        log_error "가용 도메인을 조회할 수 없습니다."
+        exit 1
+    fi
 
-    if [[ $AD_COUNT -eq 1 ]]; then
+    AD_COUNT=$(echo "$AD_LIST" | jq length 2>/dev/null || echo "0")
+
+    if [[ "$AD_COUNT" == "0" || -z "$AD_COUNT" ]]; then
+        log_error "가용 도메인이 없습니다."
+        exit 1
+    elif [[ "$AD_COUNT" == "1" ]]; then
         AVAILABILITY_DOMAIN=$(echo "$AD_LIST" | jq -r '.[0]')
+        log_success "AD: $AVAILABILITY_DOMAIN"
     else
         echo ""
         echo -e "${YELLOW}가용 도메인:${NC}"
@@ -139,9 +181,8 @@ select_availability_domain() {
         read -r AD_NUM
         AD_NUM=${AD_NUM:-1}
         AVAILABILITY_DOMAIN=$(echo "$AD_LIST" | jq -r ".[$((AD_NUM-1))]")
+        log_success "AD: $AVAILABILITY_DOMAIN"
     fi
-
-    log_success "AD: $AVAILABILITY_DOMAIN"
 }
 
 # VCN 및 Subnet 선택
