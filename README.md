@@ -20,13 +20,13 @@ OCI Console 우측 상단의 Cloud Shell 아이콘 클릭
 ### 2. 원클릭 설치 명령어
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/vvulcanos/oci/main/oci-wg-setup.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/vvulcanos/oci-wg-easy/main/oci-wg-setup.sh)
 ```
 
 또는:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/vvulcanos/oci/main/oci-wg-setup.sh -o setup.sh
+curl -fsSL https://raw.githubusercontent.com/vvulcanos/oci-wg-easy/main/oci-wg-setup.sh -o setup.sh
 chmod +x setup.sh
 ./setup.sh
 ```
@@ -62,10 +62,10 @@ SSH로 인스턴스 접속 후:
 
 ```bash
 # 대화형 설치
-curl -fsSL https://raw.githubusercontent.com/vvulcanos/oci/main/install-wg-easy.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/vvulcanos/oci-wg-easy/main/install-wg-easy.sh | sudo bash
 
 # 자동 설치
-sudo bash <(curl -fsSL https://raw.githubusercontent.com/vvulcanos/oci/main/install-wg-easy.sh) --auto
+sudo bash <(curl -fsSL https://raw.githubusercontent.com/vvulcanos/oci-wg-easy/main/install-wg-easy.sh) --auto
 ```
 
 ## 필요한 OCI Security List 포트
