@@ -1,0 +1,23 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# IDE
+.gemini
+
+# 설정 파일 (민감한 정보 포함)
+config.ini
+config/config
+
+# 로그 파일
+logs/
+
+# OCI 관련
+*.pem
